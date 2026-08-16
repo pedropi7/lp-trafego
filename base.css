@@ -1,0 +1,485 @@
+/* LP pedropi7 — direção C (Editorial) promovida a oficial em 13/ago.
+ * Identidade: DESIGN.md v3 + regras do metodo (rubrica): escala com EVENTO
+ * (1.5rem -> 8.5vw), 1 curva de easing, raio zero, mask nas bordas que somem. */
+
+@font-face{font-family:"Archivo";src:url("fonts/archivo-var.woff2") format("woff2");
+  font-weight:100 900;font-stretch:62% 125%;font-display:swap}
+@font-face{font-family:"IBM Plex Mono";src:url("fonts/plex-mono-400.woff2") format("woff2");
+  font-weight:400;font-display:swap}
+@font-face{font-family:"IBM Plex Mono";src:url("fonts/plex-mono-500.woff2") format("woff2");
+  font-weight:500;font-display:swap}
+
+:root{
+  --ink:#0F1214; --paper:#F1F4F5; --lima:#C6F24E;
+  --bg:var(--ink); --text:var(--paper);
+  --text-dim:#9ea1a4; --text-support:#7d8083;
+  --rule:#3f4245; --rule-control:#606366;
+  /* rampas por formula — cor perceptual, nao hex a mao */
+  --tinta-04:color-mix(in oklch, var(--paper) 4%, var(--ink));
+  --tinta-08:color-mix(in oklch, var(--paper) 8%, var(--ink));
+  --tinta-14:color-mix(in oklch, var(--paper) 14%, var(--ink));
+  --tinta-24:color-mix(in oklch, var(--paper) 24%, var(--ink));
+  --lima-halo:color-mix(in oklch, var(--lima) 14%, transparent);
+  --font-word:"Archivo",system-ui,sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,monospace;
+  --maxw:1160px;
+  --s1:8px; --s2:16px; --s3:32px; --s4:64px; --s5:128px;
+  /* ESCALA COM EVENTO: para em 1.5rem e salta para o display */
+  --t-micro:.75rem; --t-label:.8125rem; --t-body:clamp(1rem,.9rem + .4vw,1.125rem);
+  --t-lead:1.5rem;
+  /* 2o degrau de display: secao e nome compartilham, em vez de um clamp
+     proprio cada — cada clamp novo e um tamanho a mais na contagem. */
+  /* DEGRAU DE TITULO: h2, nome do Quem, numeros do caso — 63px em 1440.
+     ERRO CORRIGIDO: eu tinha posto isso em 125px perseguindo o limiar de
+     salto >= 5x da rubrica. O resultado foram NOVE elementos acima de 125px,
+     cinco deles titulos de secao identicos: quando tudo e climax, nada e.
+     O limiar de 5x e metrica de ESTUDIO — a propria rubrica registra que
+     limiar unico entre arquetipos e invalido, e eu repeti o erro que
+     documentei. Titulo de secao e navegacao, nao evento.
+     O piso min() segue derivado por medicao: "CONVERSAR" e a palavra mais
+     larga e cabe ate 0,1225 x a largura do container. */
+  --t-display-2:clamp(min(2.2rem,calc(9.5vw - 4px)),4.4vw,4rem);
+  /* O CLIMAX tem tamanho proprio, e e o UNICO. Antes o pico dividia degrau com
+     os titulos de secao e a pagina ficava com cinco cartazes concorrendo. */
+  --t-pico:clamp(3rem,12.8vw,11.5rem);
+  --t-digit:clamp(2.6rem,7vw,6rem);
+  --ease:cubic-bezier(.16,1,.3,1); --dur:220ms; --dur-l:420ms;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;overflow-x:clip}
+body{background:var(--bg);color:var(--text);font-family:var(--font-word);
+  font-size:var(--t-body);line-height:1.6;overflow-x:clip}
+img{max-width:100%;display:block;height:auto}
+a{color:inherit;text-decoration:none}
+/* Lima sobre papel mede 1,17:1 — o DESIGN.md publica esse numero como
+   "invisivel" e proibe. Anel de foco e grafite no claro; lima so no escuro. */
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.case :focus-visible{outline-color:var(--lima)}
+::selection{background:var(--lima);color:var(--ink)}
+
+.container{width:min(100% - 2.5rem,var(--maxw));margin-inline:auto}
+section{padding-block:clamp(64px,9vw,128px)}
+
+/* tipografia */
+h1,h2{font-weight:900;font-stretch:125%;text-transform:uppercase;
+  line-height:.95;letter-spacing:-.035em;text-wrap:balance;overflow-wrap:anywhere}
+h1{font-size:var(--t-display-2)}
+h2{font-size:var(--t-display-2)}
+h3{font-weight:600;font-stretch:110%;font-size:var(--t-lead);line-height:1.2;
+  letter-spacing:-.015em;text-wrap:balance}
+.lead{font-weight:600;font-stretch:110%;font-size:var(--t-lead);line-height:1.35;
+  letter-spacing:-.015em;max-width:44ch;text-wrap:balance}
+p{max-width:56ch;text-wrap:pretty}
+.eyebrow{font-family:var(--font-data);font-stretch:85%;font-size:var(--t-label);
+  letter-spacing:.12em;text-transform:uppercase;color:var(--text-support)}
+.apoio{color:var(--text-dim)}
+.micro{font-family:var(--font-data);font-size:var(--t-micro);color:var(--text-support);
+  letter-spacing:.04em}
+
+/* CTA — 2 rotulos na pagina inteira */
+.btn{display:inline-flex;align-items:center;justify-content:center;height:52px;
+  padding:0 var(--s3);border:1px solid var(--rule-control);
+  font-weight:600;font-size:var(--t-body);letter-spacing:.01em;cursor:pointer;
+  transition:transform var(--dur) var(--ease),background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease)}
+.btn--lima{background:var(--lima);border-color:var(--lima);color:var(--ink)}
+@media(hover:hover) and (pointer:fine){
+  .btn:hover{transform:translateY(-2px)}
+  .btn--lima:hover{background:color-mix(in oklch, var(--lima) 88%, var(--paper))}
+  .btn:not(.btn--lima):hover{border-color:var(--text)}
+}
+
+/* nav minima */
+.nav{position:fixed;inset-inline:0;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--tinta-14)}
+.nav .container{display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav__logo{font-family:var(--font-data);font-weight:500;font-size:var(--t-label);
+  display:inline-flex;align-items:center;min-height:44px}
+.nav__logo::before{content:"p7";display:inline-grid;place-items:center;width:26px;height:26px;
+  border:1px solid currentColor;margin-right:var(--s1);font-size:.75rem}
+.nav .btn{height:44px;padding:0 var(--s2)}
+
+/* heroi */
+.hero{min-height:92svh;display:grid;align-items:end;position:relative;
+  padding-block:calc(60px + var(--s4)) var(--s4);isolation:isolate}
+.hero .container{position:relative;z-index:1}
+.hero h1{margin-block:var(--s2) var(--s2)}
+.hero .apoio{max-width:46ch}
+.hero__acao{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap}
+
+/* regua de prova — plano unico com fio de 1px */
+.regua{border-block:1px solid var(--rule)}
+.regua .container{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;
+  background:var(--rule);border-inline:1px solid var(--rule);padding:0}
+.regua div{background:var(--bg);padding:var(--s3) var(--s2)}
+.regua b{display:block;font-family:var(--font-data);font-weight:500;font-size:var(--t-digit);
+  line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums slashed-zero;
+  text-wrap:nowrap}
+.regua span{display:block;margin-top:var(--s1);font-stretch:85%;font-size:var(--t-label);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--text-support)}
+
+/* previsivel — 3 blocos */
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s3);margin-top:var(--s4)}
+.trio h3{border-top:1px solid var(--rule-control);padding-top:var(--s2)}
+.trio p{margin-top:var(--s1);color:var(--text-dim)}
+
+/* case Yuri — prova em dados, sem caixa: a hierarquia conta a historia.
+   O ANTES e menor e apagado; o DEPOIS e grande; o pico vira manchete. */
+.case{background:var(--tinta-04)}
+.case__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);
+  gap:var(--s4);margin-top:var(--s4);align-items:start;max-width:820px}
+.case__col i{font-style:normal;font-family:var(--font-data);font-size:var(--t-label);
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-support)}
+.case__col b{display:block;font-family:var(--font-data);font-weight:500;
+  font-size:var(--t-display-2);line-height:1.05;letter-spacing:-.03em;margin-top:var(--s3);
+  font-variant-numeric:tabular-nums slashed-zero;text-wrap:nowrap}
+.case__col span{display:block;color:var(--text-dim);margin-top:2px}
+.case__antes b{font-size:var(--t-lead);color:var(--text-dim)}
+/* 14,51:1 sobre grafite — identico ao lima, sem roubar o papel de acao.
+   A coluna "depois" vence a "antes" por escala (63px contra 24px). */
+.case__depois b{color:var(--paper)}
+.case__pico{margin-top:var(--s4);font-weight:900;font-stretch:125%;text-transform:uppercase;
+  font-size:var(--t-pico);line-height:.94;letter-spacing:-.035em;max-width:none;
+  width:100vw;margin-inline:calc(50% - 50vw);padding-inline:clamp(20px,3vw,48px)}
+.case__nota{margin-top:var(--s3);color:var(--text-dim);max-width:48ch}
+.case__link{display:inline-flex;align-items:center;min-height:44px;margin-top:var(--s2);padding-block:12px;font-family:var(--font-data);
+  font-size:var(--t-label);border-bottom:1px solid var(--lima);padding-bottom:2px}
+
+/* passos */
+.passos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin-top:var(--s4)}
+.passo{background:var(--bg);padding:var(--s3) var(--s2);position:relative}
+.passo::before{content:"";position:absolute;inset-block-start:0;inset-inline:0;height:2px;
+  background:var(--lima);transform:scaleX(0);transform-origin:left;
+  transition:transform var(--dur) var(--ease)}
+@media(hover:hover) and (pointer:fine){.passo:hover::before{transform:scaleX(1)}}
+.passo i{font-style:normal;font-family:var(--font-data);font-size:var(--t-label);
+  color:var(--text-support)}
+.passo h3{margin-block:var(--s2) var(--s1)}
+.passo p{color:var(--text-dim)}
+
+/* sem letra miuda */
+.claro ul{list-style:none;padding:0;margin-top:var(--s3);max-width:64ch}
+.claro li{padding:var(--s2) 0;border-top:1px solid var(--rule);display:flex;gap:var(--s2)}
+.claro li::before{content:"—";color:var(--ink);flex:0 0 auto}
+
+/* quem */
+.quem .container{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr);
+  gap:var(--s4);align-items:center}
+.quem figure{margin:0;aspect-ratio:4/5;overflow:hidden;border:1px solid var(--rule-control)}
+.quem img{width:100%;height:100%;object-fit:cover;object-position:center 25%;
+  filter:saturate(.55) contrast(1.03)}
+.quem .lead{margin-top:var(--s2)}
+.quem .apoio{margin-top:var(--s2)}
+
+/* conversao */
+.conversa{border-top:1px solid var(--rule)}
+.form{display:grid;gap:var(--s2);max-width:520px;margin-top:var(--s3)}
+.form label{display:grid;gap:6px;font-family:var(--font-data);font-size:var(--t-micro);
+  letter-spacing:.06em;text-transform:uppercase;color:var(--text-support)}
+.form input,.form select{height:52px;background:var(--tinta-04);border:1px solid var(--rule-control);
+  color:var(--text);padding:0 var(--s2);font:inherit;border-radius:0;
+  transition:border-color var(--dur) var(--ease)}
+.form input:focus,.form select:focus{border-color:var(--lima)}
+.form .btn{margin-top:var(--s1)}
+.alt{margin-top:var(--s3);display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap}
+
+.footer{border-top:1px solid var(--rule);padding-block:var(--s3);
+  color:var(--text-support);font-family:var(--font-data);font-size:var(--t-micro)}
+
+/* fades por mascara — borda que some e mascara, nao gradiente por cima */
+.fade-b{mask-image:linear-gradient(180deg,#000 78%,transparent)}
+
+/* ====== DIRECAO C — EDITORIAL: papel dominante, retrato, temperatura humana ====== */
+.dir-c{--bg:var(--paper);--text:var(--ink);
+  --text-dim:#393c3d;--text-support:#6a6d70;
+  --rule:#c1c7cc;--rule-control:#888b8e;
+  --tinta-04:color-mix(in oklch, var(--ink) 4%, var(--paper));
+  --tinta-08:color-mix(in oklch, var(--ink) 8%, var(--paper));
+  --tinta-14:color-mix(in oklch, var(--ink) 12%, var(--paper))}
+.dir-c .nav{background:var(--paper)}
+.dir-c .hero{display:grid;align-items:end}
+.dir-c .hero .container{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+  gap:var(--s4);align-items:end}
+.dir-c .hero figure{margin:0;aspect-ratio:4/5;overflow:hidden}
+.dir-c .hero img{width:100%;height:100%;object-fit:cover;object-position:center 25%;
+  filter:saturate(.55) contrast(1.03)}
+.dir-c .case{background:var(--ink);color:var(--paper);
+  --text-dim:#9ea1a4;--text-support:#7d8083;border-color:var(--ink)}
+.dir-c .regua .container>div,.dir-c .passo{background:var(--paper)}
+
+@media(max-width:860px){
+  .regua .container{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .trio,.passos,.case__grid{grid-template-columns:minmax(0,1fr)}
+  .quem .container,.dir-c .hero .container{grid-template-columns:minmax(0,1fr)}
+  .dir-c .hero figure{max-width:320px}
+  .hero{min-height:auto}
+}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition-duration:1ms !important;animation:none !important}
+}
+
+/* ====== DES-SISTEMATIZACAO DA C (escolha do Pedro, 13/ago) ======
+   O que saiu: fio de 1px, celula, moldura — a gramatica de painel.
+   O que entrou: assimetria, escala, ritmo e espaco. A copy nao mudou. */
+
+/* heroi: o retrato invade a secao seguinte — sobreposicao editorial */
+.dir-c .hero figure{margin-bottom:calc(-1*var(--s5));position:relative;z-index:2}
+.dir-c .hero h1{font-size:clamp(2.4rem,8.5vw,6.4rem)}
+
+/* regua: numeros soltos no papel, sem moldura */
+.dir-c .regua{border:0}
+.dir-c .regua .container{display:flex;flex-wrap:wrap;gap:var(--s3) var(--s5);
+  background:none;border:0;padding-top:var(--s4)}
+.dir-c .regua .container>div{background:none;padding:0}
+
+/* previsivel: lead ancorado a esquerda, pontos escorrendo a direita */
+.dir-c .prev .container{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);
+  gap:var(--s3) var(--s4)}
+.dir-c .prev h2{grid-column:1/-1}
+.dir-c .prev .lead{position:sticky;top:calc(60px + var(--s3));align-self:start;margin-top:0}
+.dir-c .prev .trio{display:block;margin-top:0}
+.dir-c .prev .trio div + div{margin-top:var(--s4)}
+.dir-c .prev .trio h3{border:0;padding:0}
+
+/* passos: degraus deslocados, numero como cifra fantasma — nada de celula */
+.dir-c .passos{display:block;background:none;border:0}
+.dir-c .passo{background:none;padding:var(--s3) 0;display:grid;
+  grid-template-columns:auto minmax(0,1fr);gap:var(--s1) var(--s3);align-items:start;max-width:52rem}
+.dir-c .passo i{grid-row:1/3}
+.dir-c .passo h3,.dir-c .passo p{grid-column:2;text-align:left}
+.dir-c .passo::before{display:none}
+.dir-c .passo i{font-family:var(--font-data);font-size:var(--t-lead);line-height:1;
+  color:color-mix(in oklch, var(--ink) 45%, var(--paper))}
+/* 22% dava 1,73:1 — invisivel, e parte do que fazia a secao parecer "texto
+   plotado". 45% mede 3,41:1: passa o limiar de texto grande (3:1, e a cifra
+   tem 51px) e continua muito abaixo do titulo (16,97:1), entao segue
+   secundaria. Lima aqui nao serve: 1,17:1 sobre papel. */
+.dir-c .passo h3{margin-top:0}
+.dir-c .passo:nth-child(2){margin-left:9%}
+.dir-c .passo:nth-child(3){margin-left:18%}
+
+/* sem letra miuda: manifesto, nao tabela */
+.dir-c .claro li{border:0;padding:var(--s1) 0;font-weight:600;font-stretch:110%;
+  font-size:var(--t-lead);letter-spacing:-.015em;line-height:1.3}
+
+/* quem e conversa: sem moldura no retrato, sem fio de abertura */
+.dir-c .quem figure{border:0}
+.dir-c .conversa{border-top:0}
+.dir-c .nav{border-bottom:0}
+
+@media(max-width:860px){
+  .dir-c .hero figure{margin-bottom:0}
+  .dir-c .regua .container{gap:var(--s3)}
+  .dir-c .prev .container{grid-template-columns:minmax(0,1fr)}
+  .dir-c .prev .lead{position:static}
+  .dir-c .passo:nth-child(2),.dir-c .passo:nth-child(3){margin-left:0}
+}
+
+/* ============ PLANO VISUAL — itens 1, 2 e 4 ============
+   Conceito: a pagina prova a promessa antes de explica-la.
+   Vazio so existe com contrapeso; cada secao muda a relacao titulo<->corpo. */
+
+/* [1] HEROI — a foto saiu; o contraste de EIXO assume.
+   "Cliente novo," condensada (62) contra "todo dia." expandida (125): a tensao
+   entre as duas larguras E o design, e o eixo wdth e a assinatura da marca (D9).
+   Sangria total: o tipo toca as duas bordas da viewport, nao o container. */
+.dir-c .hero .container{display:block}
+.dir-c .hero h1{
+  width:100vw;margin-inline:calc(50% - 50vw);padding-inline:clamp(20px,3vw,48px);
+  font-size:clamp(2.6rem,13.5vw,13rem);line-height:.86;letter-spacing:-.045em;
+  margin-block:clamp(16px,2vw,28px) clamp(20px,2.4vw,36px)}
+.dir-c .h1__a,.dir-c .h1__b{display:block;white-space:nowrap;line-height:.86}
+.dir-c .h1__a{font-stretch:62%}
+.dir-c .h1__b{font-stretch:125%}
+/* o subtitulo e o CTA ancoram embaixo, em coluna estreita: contrapeso do tipo */
+.dir-c .hero .apoio{max-width:38ch}
+
+/* [2] PREVISIVEL — o buraco do canto inferior esquerdo vira o TITULO.
+   O h2 desce para a coluna da esquerda e acompanha a leitura; o vazio deixa de
+   existir porque ganha conteudo. Inverte a relacao titulo<->corpo do heroi:
+   la o titulo e evento horizontal, aqui e ancora vertical. */
+.dir-c .prev .container{grid-template-columns:minmax(0,.55fr) minmax(0,1.45fr);
+  gap:var(--s3) clamp(32px,6vw,96px)}
+/* Tentei o titulo VERTICAL para ocupar a altura da coluna. Media 938px e
+   estourava em viewport curta, alem de ler de baixo para cima. Descartado:
+   nao vale o risco, e forcava um tamanho fora da escala consolidada.
+   O buraco do canto foi resolvido por GEOMETRIA — a coluna da esquerda
+   encolheu para 0,55fr, entao nao sobra area morta para preencher. O titulo
+   volta a ser cartaz de largura total, no degrau unico, como as outras secoes. */
+.dir-c .prev h2{grid-column:1/-1;font-size:var(--t-display-2);
+  line-height:.92;margin:0 0 var(--s4);overflow-wrap:normal}
+/* o lead ancora na coluna estreita e acompanha a leitura dos 3 argumentos */
+.dir-c .prev .lead{grid-column:1;position:sticky;top:calc(60px + var(--s3));
+  align-self:start;margin:0}
+.dir-c .prev .trio{grid-column:2;margin-top:0}
+
+/* [4] QUEM GERENCIA — a unica foto da pagina, tratada com elegancia.
+   Sangra pela borda esquerda da viewport, recorte ALTO (nao quadrado), sem
+   moldura; o nome em display sobrepoe a borda direita dela. D11 respeitada:
+   so gradacao de cor sobre conteudo figurativo, nenhum efeito generativo. */
+.dir-c .quem .container{grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);
+  gap:clamp(24px,4vw,72px);align-items:center}
+/* A sangria vai ate a BORDA DO CONTAINER, nao ate meia viewport: com
+   calc(50% - 50vw) a figura chegava a 1010x702 — mais de dois tercos da tela.
+   Agora ela cobre exatamente a margem esquerda do container e mais nada. */
+.dir-c .quem{--sangra:max(20px,(100vw - var(--maxw))/2)}
+.dir-c .quem figure{margin-left:calc(-1 * var(--sangra));
+  width:calc(100% + var(--sangra));aspect-ratio:auto;
+  aspect-ratio:3/4;height:auto}
+.dir-c .quem img{object-position:center 22%}
+.dir-c .quem__nome{font-weight:900;font-stretch:125%;text-transform:uppercase;
+  font-size:var(--t-display-2);line-height:.88;letter-spacing:-.04em;
+  margin-left:clamp(-72px,-5vw,-24px);margin-block:var(--s1) var(--s3);
+  position:relative;z-index:2;max-width:none}
+.dir-c .quem .lead{margin-top:0}
+
+@media(max-width:860px){
+  /* 12vw dava 46,8px em 390 e a amplitude do mobile ficava em 3,92x — abaixo
+     do pior concorrente medido no corpus. O manchete.js dimensiona pela medida,
+     entao aqui so o TETO importa; o piso protege telas muito estreitas. */
+  .dir-c .hero h1{font-size:clamp(2.6rem,16vw,5rem)}
+  .dir-c .prev h2{margin-bottom:var(--s3)}
+  .dir-c .prev .lead,.dir-c .prev .trio{grid-column:1/-1}
+  /* minha regra .dir-c .quem .container (0,3,0) vencia a do base (0,2,0), entao a
+     secao seguia em 2 colunas no celular e a sangria calculava sobre 163px —
+     jogando a figura para -93px e criando rolagem horizontal. */
+  .dir-c .quem .container{grid-template-columns:minmax(0,1fr)}
+  .dir-c .quem figure{margin-left:calc(50% - 50vw);width:100vw;height:min(56vh,420px);max-width:none}
+  .dir-c .quem__nome{margin-left:0}
+}
+
+/* [3] REGUA — razao contabil (lab T5). Quatro numeros soltos com vazio a
+   direita liam como "numero seco". Agora sentam numa PAUTA.
+   A linha e ::after de CADA faixa, nao um gradiente de fundo: gradiente
+   depende de fase e eu o coloquei fora de fase duas vezes. Preso a faixa,
+   nao tem como desalinhar. A mascara vive so na linha, entao o texto
+   nao desbota junto. */
+.dir-c .regua{position:relative;padding-block:clamp(48px,7vw,96px)}
+.dir-c .regua .container{display:block}
+.dir-c .regua .container>div{position:relative;background:none;padding:0 0 14px;
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:clamp(16px,3vw,40px);margin-top:20px}
+.dir-c .regua .container>div::after{content:"";position:absolute;inset-block-end:0;inset-inline:0;
+  height:1px;background:#888b8e;
+  mask-image:linear-gradient(90deg,#000 0 100%)}
+/* a pauta encurta a cada linha: o olho desce em diagonal ate o ultimo numero */
+.dir-c .regua b{font-size:var(--t-lead);line-height:1;margin:0;
+  min-width:4.5ch;text-align:right}
+.dir-c .regua span{margin:0;font-size:var(--t-label);text-align:right;flex:0 0 auto}
+
+@media(max-width:860px){
+  .dir-c .regua .container>div{flex-wrap:wrap;gap:2px 14px}
+  .dir-c .regua .container>div::after,.dir-c .regua .container>div:nth-child(n)::after{
+    mask-image:linear-gradient(90deg,#000 0 88%,transparent 96%)}
+  .dir-c .regua b{min-width:max-content;flex:0 0 auto;text-align:left}
+}
+}
+
+/* [5] PASSOS — fio ligando as cifras: o processo tem comeco e fim. */
+.dir-c .passos{position:relative}
+.dir-c .passo{position:relative}
+.dir-c .passo:not(:last-child)::after{content:"";position:absolute;
+  inset-block:calc(var(--s3) + 1.4em) calc(-1 * var(--s3));
+  inset-inline-start:.55em;width:1px;
+  background:#888b8e}
+
+/* [6] FORMULARIO — so a linha de baixo. Caixa era a ultima gramatica de
+   sistema que restava na pagina; sublinhado parece preencher 3 linhas,
+   nao 3 formularios. */
+.dir-c .form{gap:var(--s3)}
+.dir-c .form label{gap:0;position:relative}
+.dir-c .form input,.dir-c .form select{
+  height:auto;padding:10px 0;background:none;border:0;
+  border-bottom:1px solid #6a6d70;
+  font-size:var(--t-lead);font-weight:600;font-stretch:110%;letter-spacing:-.015em;
+  color:var(--ink);transition:border-color var(--dur) var(--ease)}
+.dir-c .form input:focus,.dir-c .form select:focus{border-bottom-color:var(--ink);
+  border-bottom-width:2px;padding-bottom:9px;
+  outline:2px solid var(--ink);outline-offset:4px}
+.dir-c .form select{appearance:none;background-image:none}
+.dir-c .form .btn{margin-top:var(--s2);justify-self:start;padding-inline:var(--s4)}
+
+/* [4b] o nome sobrepoe mais a foto agora que ela encolheu */
+.dir-c .quem__nome{margin-left:clamp(-96px,-6vw,-32px)}
+
+@media(max-width:860px){
+  .dir-c .quem figure{aspect-ratio:4/5;height:auto}
+  .dir-c .passo:not(:last-child)::after{display:none}
+}
+
+/* revelacao do numero: mascara que corre, valor sempre verdadeiro no DOM */
+.revela{display:inline-block;
+  mask-image:linear-gradient(90deg,#000 0 0%,transparent 0% 100%);
+  mask-size:100% 100%;
+  transition:mask-image 900ms var(--ease)}
+.revela.revelado{mask-image:linear-gradient(90deg,#000 0 100%,transparent 100% 100%)}
+@supports not (mask-image:linear-gradient(#000,#000)){.revela{mask-image:none}}
+
+/* A metade direita do formulario ficava vazia a partir de ~860px — justamente
+   onde o visitante decide. Recebe a prova mais forte da pagina, repetida como
+   lembrete. Copy ja aprovada, nada inventado. */
+.dir-c .conversa .container{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s4)}
+.conversa__prova{display:none}
+@media(min-width:860px){
+  .dir-c .conversa .container{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);
+    align-items:start}
+  .dir-c .conversa h2{grid-column:1/-1}
+  .conversa__prova{display:block;align-self:center;padding-top:var(--s3)}
+  .conversa__prova b{display:block;font-weight:900;font-stretch:125%;text-transform:uppercase;
+    font-size:clamp(2rem,4.4vw,4rem);line-height:.94;letter-spacing:-.035em}
+  .conversa__prova span{display:block;margin-top:var(--s2);color:var(--text-dim);max-width:34ch}
+}
+
+/* ===== CAMADA VIVA (lp-camada-viva.md) ===== */
+/* campo de tinta atras do heroi — o canvas pinta o proprio papel */
+.hero__campo{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+/* grao: o papel liso vira superficie */
+.grao{position:fixed;inset:-140px;pointer-events:none;z-index:60;
+  opacity:.05;mix-blend-mode:multiply;background-repeat:repeat;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* entrada de conteudo: rapida, pequena, uma vez */
+.viva{opacity:0;transform:translateY(12px);
+  transition:opacity .5s var(--ease) var(--vd,0ms),transform .55s var(--ease) var(--vd,0ms)}
+.viva--ok{opacity:1;transform:none}
+
+.btn{will-change:transform}
+
+@media(prefers-reduced-motion:reduce){
+  .viva{opacity:1;transform:none;transition:none}
+  .grao{display:none}
+}
+
+/* regua: cada caractere sobe na janela de recorte — valor sempre verdadeiro */
+.rolo{overflow:clip;white-space:nowrap}
+.regua b.rolo{width:max-content;flex:none}
+/* Os caracteres do odometro sao <span> DENTRO de .regua — e a regra do ROTULO
+   (.regua span: display:block, 13px) os capturava por especificidade,
+   empilhando cada digito num bloco proprio (a regua mobile virava lixo,
+   achado da revisao). Este seletor de 0,2,0 devolve a eles a herenca. */
+.regua .rolo .rolo__d{display:inline-block;font:inherit;letter-spacing:inherit;text-align:left;flex:none;
+  margin:0;color:inherit;text-transform:none;font-stretch:inherit}
+.rolo__d{display:inline-block;transform:translateY(1.15em);
+  transition:transform .6s var(--ease) var(--rd,0ms)}
+.rolo--ok .rolo__d{transform:none}
+
+/* a nav mergulha no climax: papel vira tinta enquanto a secao escura passa */
+.nav{transition:border-color .3s var(--ease)}
+body.dir-c.nav-escura .nav{background:var(--ink);color:var(--paper);border-bottom-color:#3f4245}
+
+/* o fio dos passos se DESENHA conforme entra — so onde o navegador suporta;
+   sem suporte, o fio simplesmente ja esta la */
+@supports (animation-timeline: view()){
+  .dir-c .passo:not(:last-child)::after{transform-origin:top;
+    animation:fio linear both;animation-timeline:view();animation-range:entry 10% entry 85%}
+  @keyframes fio{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .rolo__d{transform:none;transition:none}
+  .dir-c .passo:not(:last-child)::after{animation:none}
+}
