@@ -54,7 +54,7 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
 
 <main>
   <section class="hero" id="hero">
-    <canvas class="hero__campo" aria-hidden="true"></canvas>
+    <canvas class="campo hero__campo" aria-hidden="true"></canvas>
     <div class="container">
       <div id="hero-bloco">
       <p class="eyebrow">Tráfego pago · Negócios locais</p>
@@ -90,7 +90,8 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
   </section>
 
   <section class="case" id="caso">
-    <div class="container">
+    <canvas class="campo case__campo" aria-hidden="true"></canvas>
+    <div class="container" id="caso-bloco">
       <p class="eyebrow">Caso real · primeiro cliente · desde 2023</p>
       <h2>Da cadeira ao salão</h2>
       <div class="case__grid">
@@ -139,7 +140,10 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
 
   <section class="quem">
     <div class="container">
-      <figure><img src="img/retrato.jpg" alt="Pedro Pissetti" width="800" height="1000" fetchpriority="high"></figure>
+      <figure>
+        <img src="img/retrato.jpg" alt="Pedro Pissetti" width="800" height="1000" fetchpriority="high">
+        <figcaption class="quem__placa"><b>Pedro Pissetti</b><span>Gestor de tráfego · há 4 anos</span></figcaption>
+      </figure>
       <div>
         <p class="eyebrow">Quem gerencia</p>
         <p class="quem__nome" aria-hidden="true">Pedro<br>Pissetti</p>

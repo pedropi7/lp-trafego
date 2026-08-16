@@ -1,18 +1,10 @@
-/* Campo de isolinhas do herói — TINTA sobre papel. WebGL2, zero biblioteca.
- * Adaptação do campo do laboratório (aprovado pelo Pedro) para superfície clara:
- * linhas grafite desenhadas como tinta, sonda que ESCURECE sob o cursor (nada de
- * lima em fundo claro — 1,17:1, proibido no DESIGN.md). Reage à velocidade do
- * gesto com inércia. Mobile: um quadro estático. reduced-motion: idem. */
+/* Campo de isolinhas — agora em DUAS instâncias: tinta sobre papel no herói e
+ * papel sobre tinta no clímax escuro. O dinamismo que abria a página passa a
+ * fechá-la também — a assinatura vira moldura, não introdução (queixa do Pedro:
+ * "os elementos somem depois do começo"). Cores e força viraram uniforms.
+ * D11 respeitada: o campo só toca fundo abstrato, nunca conteúdo figurativo. */
 (() => {
   'use strict';
-
-  const host  = document.getElementById('hero');
-  const cv    = host && host.querySelector('.hero__campo');
-  const bloco = document.getElementById('hero-bloco');
-  if (!cv) return;
-
-  const gl = cv.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' });
-  if (!gl) { cv.remove(); return; }
 
   const VS = `#version 300 es
 in vec2 aPos; void main(){ gl_Position = vec4(aPos,0.,1.); }`;
@@ -22,12 +14,8 @@ precision highp float;
 out vec4 fragColor;
 uniform vec2 uRes; uniform float uTime; uniform vec2 uMouse; uniform vec2 uDir;
 uniform float uMotion; uniform vec4 uBloco; uniform float uDpr;
+uniform vec3 uFundo; uniform vec3 uLinha; uniform vec2 uForca; // x: base, y: no bloco
 
-const vec3 PAPEL = vec3(0.9451, 0.9569, 0.9608);   // #F1F4F5
-const vec3 TINTA = vec3(0.0588, 0.0706, 0.0784);   // #0F1214
-const float FORCA = 0.30, FORCA_BLOCO = 0.09, SONDA = 0.45;
-
-// hash sem seno: sin() com argumento grande quebra em GPU real (licao do lab)
 float hash(vec2 p){ vec3 q = fract(vec3(p.xyx)*0.1031); q += dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
 float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); vec2 u=f*f*(3.-2.*f);
   return mix(mix(hash(i),hash(i+vec2(1,0)),u.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),u.x), u.y); }
@@ -59,15 +47,14 @@ void main(){
 
   float k = h*14. - uTime*.09;
   float dist = abs(fract(k-.5)-.5);
-  // espessura em PIXEL, nao em altitude (licao do lab)
   float w  = max(fwidth(k),1e-4);
-  float px = dist/w;
+  float px = dist/w;                                  // espessura em pixel
   float nivel  = floor(k);
   float indice = 1.-step(.001,abs(mod(nivel,5.)));
   float linha  = 1.-smoothstep(.35,1.05,px);
   float grossa = 1.-smoothstep(.60,1.90,px);
   linha = max(linha, grossa*indice);
-  linha *= 1.-smoothstep(.30,.62,w);          // niveis colados: apaga, nao vira mingau
+  linha *= 1.-smoothstep(.30,.62,w);
 
   float ret = step(bayer8(floor(frag/(3.*uDpr))),.34)*.05;
   float vin = smoothstep(1.75,.35,length(p*vec2(.72,1.)));
@@ -77,93 +64,108 @@ void main(){
   vec2 s = smoothstep(a-pad,a,frag)*(1.-smoothstep(b,b+pad,frag));
   float dentro = s.x*s.y;
 
-  float forca = mix(FORCA, FORCA_BLOCO, dentro);
+  float forca = mix(uForca.x, uForca.y, dentro);
   float sonda = exp(-dot(p-m,p-m)*9.);
-  forca += SONDA*sonda*uMotion*(1.-dentro);   // a tinta ADENSA sob o gesto
+  forca += .45*sonda*uMotion*(1.-dentro);
 
-  fragColor = vec4(mix(PAPEL, TINTA, campo*forca), 1.);
+  fragColor = vec4(mix(uFundo, uLinha, campo*forca), 1.);
 }`;
-
-  function compilar(tipo, src){
-    const s = gl.createShader(tipo);
-    gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); return null; }
-    return s;
-  }
-  const vs = compilar(gl.VERTEX_SHADER, VS), fs = compilar(gl.FRAGMENT_SHADER, FS);
-  if (!vs || !fs) { cv.remove(); return; }
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { cv.remove(); return; }
-  gl.useProgram(prog);
-
-  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
-  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(prog, 'aPos');
-  gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-  const U = n => gl.getUniformLocation(prog, n);
-  const uRes=U('uRes'), uTime=U('uTime'), uMouse=U('uMouse'), uDir=U('uDir'),
-        uMotion=U('uMotion'), uBloco=U('uBloco'), uDpr=U('uDpr');
 
   const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const amplo = () => innerWidth >= 1024;
-  let dpr=1, largura=0, altura=0, alvoX=.5, alvoY=.5, px=.5, py=.5;
-  let dirX=0, dirY=0, energia=0, raf=0, ultimo=0, visivel=false;
 
-  function dimensionar(){
-    dpr = Math.min(devicePixelRatio||1, amplo() ? 1.5 : 2);
-    largura = Math.max(1, Math.round(cv.clientWidth*dpr));
-    altura  = Math.max(1, Math.round(cv.clientHeight*dpr));
-    cv.width = largura; cv.height = altura;
-    gl.viewport(0,0,largura,altura);
-    gl.uniform2f(uRes,largura,altura); gl.uniform1f(uDpr,dpr);
-    medirBloco();
+  function montar(cfg){
+    const host  = document.querySelector(cfg.host);
+    const cv    = host && host.querySelector('canvas.campo');
+    const bloco = cfg.bloco ? document.querySelector(cfg.bloco) : null;
+    if (!cv) return;
+    const gl = cv.getContext('webgl2', { alpha:false, antialias:false, depth:false, stencil:false, powerPreference:'low-power' });
+    if (!gl) { cv.remove(); return; }
+
+    const mk = (tipo, src) => { const s = gl.createShader(tipo); gl.shaderSource(s, src); gl.compileShader(s);
+      return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; };
+    const vs = mk(gl.VERTEX_SHADER, VS), fs = mk(gl.FRAGMENT_SHADER, FS);
+    if (!vs || !fs) { cv.remove(); return; }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { cv.remove(); return; }
+    gl.useProgram(prog);
+
+    const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+    const U = n => gl.getUniformLocation(prog, n);
+    gl.uniform3fv(U('uFundo'), cfg.fundo);
+    gl.uniform3fv(U('uLinha'), cfg.linha);
+    gl.uniform2fv(U('uForca'), cfg.forca);
+    const uRes=U('uRes'), uTime=U('uTime'), uMouse=U('uMouse'), uDir=U('uDir'),
+          uMotion=U('uMotion'), uBloco=U('uBloco'), uDpr=U('uDpr');
+
+    let dpr=1, W=0, H=0, alvoX=.5, alvoY=.5, px=.5, py=.5;
+    let dirX=0, dirY=0, energia=0, raf=0, ultimo=0, visivel=false, lentos=0;
+
+    function dimensionar(){
+      dpr = Math.min(devicePixelRatio||1, amplo() ? 1.5 : 2);
+      W = Math.max(1, Math.round(cv.clientWidth*dpr));
+      H = Math.max(1, Math.round(cv.clientHeight*dpr));
+      cv.width = W; cv.height = H;
+      gl.viewport(0,0,W,H);
+      gl.uniform2f(uRes,W,H); gl.uniform1f(uDpr,dpr);
+      medirBloco();
+    }
+    function medirBloco(){
+      if (!bloco){ gl.uniform4f(uBloco,-1e5,-1e5,1,1); return; }
+      const rb = bloco.getBoundingClientRect(), rc = cv.getBoundingClientRect();
+      gl.uniform4f(uBloco,(rb.left-rc.left)*dpr,(rc.bottom-rb.bottom)*dpr,rb.width*dpr,rb.height*dpr);
+    }
+    addEventListener('resize', () => { dimensionar(); desenharUm(); }, { passive:true });
+    addEventListener('scroll', medirBloco, { passive:true });
+    if (document.fonts) document.fonts.ready.then(() => { medirBloco(); desenharUm(); });
+    addEventListener('pointermove', e => {
+      if (e.pointerType === 'touch') return;
+      const r = cv.getBoundingClientRect();
+      alvoX = (e.clientX-r.left)/r.width;
+      alvoY = 1-(e.clientY-r.top)/r.height;
+    }, { passive:true });
+
+    function desenharUm(t){
+      gl.uniform1f(uTime, t==null ? cfg.fase : t);
+      gl.uniform2f(uMouse, px*W, py*H);
+      gl.uniform2f(uDir, dirX, dirY);
+      gl.uniform1f(uMotion, energia);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    function quadro(agora){
+      raf = requestAnimationFrame(quadro);
+      const dt = Math.min((agora-ultimo)/1000,.05); ultimo = agora;
+      const k = 1-Math.pow(.001,dt);
+      const vx = alvoX-px, vy = alvoY-py;
+      px += vx*k; py += vy*k;
+      const vel = Math.hypot(vx,vy)*220;
+      energia = Math.max(energia*Math.pow(.86,dt*60), Math.min(vel,1));
+      if (vel>.002){ const l=Math.hypot(vx,vy)||1; dirX+=(vx/l-dirX)*.25; dirY+=(vy/l-dirY)*.25; }
+      desenharUm(agora*.001 + cfg.fase);
+      if (dt>.02){ if (++lentos>45 && dpr>1){ dpr=1; lentos=0; dimensionar(); } } else lentos=0;
+    }
+    const ligar = () => { if (raf||calmo||!amplo()) return; ultimo=performance.now(); raf=requestAnimationFrame(quadro); };
+    const desligar = () => { if (raf){ cancelAnimationFrame(raf); raf=0; } };
+
+    dimensionar();
+    if (calmo || !amplo()){ desenharUm(cfg.fase); return; }
+    new IntersectionObserver(([e]) => { visivel=e.isIntersecting; visivel?ligar():desligar(); },{threshold:0}).observe(host);
+    document.addEventListener('visibilitychange', () => { document.hidden?desligar():(visivel&&ligar()); });
+    if (cfg.expor) window.__campo = { desenharUm, estado: () => ({dpr,largura:W,altura:H,energia}) };
   }
-  function medirBloco(){
-    if (!bloco){ gl.uniform4f(uBloco,-1e5,-1e5,1,1); return; }
-    const rb = bloco.getBoundingClientRect(), rc = cv.getBoundingClientRect();
-    gl.uniform4f(uBloco,(rb.left-rc.left)*dpr,(rc.bottom-rb.bottom)*dpr,rb.width*dpr,rb.height*dpr);
-  }
-  addEventListener('resize', () => { dimensionar(); desenharUm(); }, { passive:true });
-  addEventListener('scroll', medirBloco, { passive:true });
-  if (document.fonts) document.fonts.ready.then(() => { medirBloco(); desenharUm(); });
 
-  addEventListener('pointermove', e => {
-    if (e.pointerType === 'touch') return;
-    const r = cv.getBoundingClientRect();
-    alvoX = (e.clientX-r.left)/r.width;
-    alvoY = 1-(e.clientY-r.top)/r.height;
-  }, { passive:true });
+  const PAPEL = [0.9451, 0.9569, 0.9608];   // #F1F4F5
+  const TINTA = [0.0588, 0.0706, 0.0784];   // #0F1214
+  const CASO  = [0.0902, 0.1020, 0.1098];   // --tinta-04 aprox
 
-  function desenharUm(t){
-    gl.uniform1f(uTime, t==null ? 12 : t);
-    gl.uniform2f(uMouse, px*largura, py*altura);
-    gl.uniform2f(uDir, dirX, dirY);
-    gl.uniform1f(uMotion, energia);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-  }
-
-  let lentos=0;
-  function quadro(agora){
-    raf = requestAnimationFrame(quadro);
-    const dt = Math.min((agora-ultimo)/1000,.05); ultimo = agora;
-    const k = 1-Math.pow(.001,dt);
-    const vx = alvoX-px, vy = alvoY-py;
-    px += vx*k; py += vy*k;
-    const vel = Math.hypot(vx,vy)*220;
-    energia = Math.max(energia*Math.pow(.86,dt*60), Math.min(vel,1));
-    if (vel>.002){ const l=Math.hypot(vx,vy)||1; dirX+=(vx/l-dirX)*.25; dirY+=(vy/l-dirY)*.25; }
-    desenharUm(agora*.001);
-    if (dt>.02){ if (++lentos>45 && dpr>1){ dpr=1; lentos=0; dimensionar(); } } else lentos=0;
-  }
-  function ligar(){ if (raf||calmo||!amplo()) return; ultimo=performance.now(); raf=requestAnimationFrame(quadro); }
-  function desligar(){ if (raf){ cancelAnimationFrame(raf); raf=0; } }
-
-  dimensionar();
-  window.__campo = { desenharUm, estado: () => ({dpr,largura,altura,energia}) };
-  if (calmo || !amplo()){ desenharUm(12); return; }
-  new IntersectionObserver(([e]) => { visivel=e.isIntersecting; visivel?ligar():desligar(); },{threshold:0}).observe(host);
-  document.addEventListener('visibilitychange', () => { document.hidden?desligar():(visivel&&ligar()); });
+  // herói: tinta sobre papel
+  montar({ host:'#hero', bloco:'#hero-bloco', fundo:PAPEL, linha:TINTA, forca:[.30,.09], fase:12, expor:true });
+  // clímax: papel sobre tinta, mais quieto — eco, não repetição
+  montar({ host:'.case', bloco:'#caso-bloco', fundo:CASO, linha:PAPEL, forca:[.16,.05], fase:47 });
 })();

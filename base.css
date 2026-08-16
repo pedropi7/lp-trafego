@@ -41,7 +41,7 @@
   --t-display-2:clamp(min(2.2rem,calc(9.5vw - 4px)),4.4vw,4rem);
   /* O CLIMAX tem tamanho proprio, e e o UNICO. Antes o pico dividia degrau com
      os titulos de secao e a pagina ficava com cinco cartazes concorrendo. */
-  --t-pico:clamp(3rem,12.8vw,11.5rem);
+  --t-pico:clamp(2.6rem,8.6vw,8.2rem);
   --t-digit:clamp(2.6rem,7vw,6rem);
   --ease:cubic-bezier(.16,1,.3,1); --dur:220ms; --dur-l:420ms;
 }
@@ -131,7 +131,7 @@ p{max-width:56ch;text-wrap:pretty}
 .case__col i{font-style:normal;font-family:var(--font-data);font-size:var(--t-label);
   letter-spacing:.1em;text-transform:uppercase;color:var(--text-support)}
 .case__col b{display:block;font-family:var(--font-data);font-weight:500;
-  font-size:var(--t-display-2);line-height:1.05;letter-spacing:-.03em;margin-top:var(--s3);
+  font-size:clamp(1.8rem,3vw,2.9rem);line-height:1.05;letter-spacing:-.03em;margin-top:var(--s3);
   font-variant-numeric:tabular-nums slashed-zero;text-wrap:nowrap}
 .case__col span{display:block;color:var(--text-dim);margin-top:2px}
 .case__antes b{font-size:var(--t-lead);color:var(--text-dim)}
@@ -327,13 +327,14 @@ p{max-width:56ch;text-wrap:pretty}
    Agora ela cobre exatamente a margem esquerda do container e mais nada. */
 .dir-c .quem{--sangra:max(20px,(100vw - var(--maxw))/2)}
 .dir-c .quem figure{margin-left:calc(-1 * var(--sangra));
-  width:calc(100% + var(--sangra));aspect-ratio:auto;
-  aspect-ratio:3/4;height:auto}
+  width:calc(100% + var(--sangra));position:relative;
+  height:min(68vh,600px)}
 .dir-c .quem img{object-position:center 22%}
+/* o nome sai de cima da foto (lia como bug em tela larga) — a FICHA na foto
+   e quem faz o encaixe agora; o nome no texto e titulo, nao cartaz */
 .dir-c .quem__nome{font-weight:900;font-stretch:125%;text-transform:uppercase;
-  font-size:var(--t-display-2);line-height:.88;letter-spacing:-.04em;
-  margin-left:clamp(-72px,-5vw,-24px);margin-block:var(--s1) var(--s3);
-  position:relative;z-index:2;max-width:none}
+  font-size:clamp(1.8rem,2.6vw,2.6rem);line-height:.95;letter-spacing:-.03em;
+  margin:var(--s1) 0 var(--s2);max-width:none}
 .dir-c .quem .lead{margin-top:0}
 
 @media(max-width:860px){
@@ -403,7 +404,7 @@ p{max-width:56ch;text-wrap:pretty}
 .dir-c .form .btn{margin-top:var(--s2);justify-self:start;padding-inline:var(--s4)}
 
 /* [4b] o nome sobrepoe mais a foto agora que ela encolheu */
-.dir-c .quem__nome{margin-left:clamp(-96px,-6vw,-32px)}
+.dir-c .quem__nome{margin-left:0}
 
 @media(max-width:860px){
   .dir-c .quem figure{aspect-ratio:4/5;height:auto}
@@ -482,4 +483,21 @@ body.dir-c.nav-escura .nav{background:var(--ink);color:var(--paper);border-botto
 @media(prefers-reduced-motion:reduce){
   .rolo__d{transform:none;transition:none}
   .dir-c .passo:not(:last-child)::after{animation:none}
+}
+
+/* a placa: ficha tecnica presa a base da foto — o elemento de encaixe */
+.quem__placa{position:absolute;inset-inline:0;bottom:0;background:var(--ink);color:var(--paper);
+  padding:12px clamp(16px,2vw,28px);display:flex;justify-content:space-between;
+  align-items:baseline;gap:var(--s2);flex-wrap:wrap}
+.quem__placa b{font-family:var(--font-data);font-weight:500;font-size:.95rem;letter-spacing:.02em}
+.quem__placa span{font-family:var(--font-data);font-size:var(--t-micro);
+  letter-spacing:.08em;text-transform:uppercase;color:#9ea1a4}
+
+/* o campo do climax vive atras do conteudo escuro */
+.case{position:relative;isolation:isolate}
+.case__campo{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.case .container{position:relative;z-index:1}
+.case .case__pico{position:relative;z-index:1}
+@media(max-width:860px){
+  .dir-c .quem figure{height:min(52vh,440px)}
 }
