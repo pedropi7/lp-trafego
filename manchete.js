@@ -19,10 +19,17 @@
   const faixa = document.createRange();
   const larguraDe = el => { faixa.selectNodeContents(el); return faixa.getBoundingClientRect().width; };
 
+  let larguraAnterior = 0;
   function ajustar() {
     const cs = getComputedStyle(h1);
     const disponivel = h1.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     if (disponivel < 10) return;
+    // A manchete so depende da medida HORIZONTAL. No iOS o resize dispara
+    // durante a rolagem (barra do Safari) e isto rodava 4 iteracoes de
+    // Range.getBoundingClientRect() intercaladas com escrita de fontSize —
+    // thrash de layout sincrono, a cada evento, sem nada ter mudado.
+    if (Math.abs(disponivel - larguraAnterior) < 1) return;
+    larguraAnterior = disponivel;
 
     for (const l of linhas) {
       // A escala NAO e linear: medido, 441px a 100px virava 1589px a 307px —

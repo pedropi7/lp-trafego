@@ -34,16 +34,7 @@
   // tudo aparece mesmo assim
   setTimeout(() => alvos.forEach(el => el.classList.add('viva--ok')), 5000);
 
-  // CTA com massa — magnetismo curto, so em ponteiro fino
-  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    for (const b of document.querySelectorAll('.btn')) {
-      b.addEventListener('pointermove', e => {
-        const r = b.getBoundingClientRect();
-        const x = (e.clientX - r.left - r.width / 2) / r.width;
-        const y = (e.clientY - r.top - r.height / 2) / r.height;
-        b.style.translate = `${(x * 6).toFixed(1)}px ${(y * 4).toFixed(1)}px`;
-      }, { passive: true });
-      b.addEventListener('pointerleave', () => { b.style.translate = '0px 0px'; });
-    }
-  }
+  // O magnetismo do CTA foi removido: vivia atras de (hover:hover) and
+  // (pointer:fine), ou seja, codigo morto para a maioria esmagadora do nosso
+  // trafego. O substituto no celular e o :active com escala, no CSS.
 })();

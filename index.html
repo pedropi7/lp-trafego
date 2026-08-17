@@ -162,7 +162,7 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
         <label>Seu nome<input name="nome" autocomplete="name" required></label>
         <label>Seu WhatsApp<input name="zap" inputmode="tel" autocomplete="tel" required></label>
         <label>Tipo de negócio
-          <select name="negocio" required>
+          <select name="negocio" required aria-label="Tipo de negócio">
             <option value="" selected disabled>Escolher…</option>
             <option>Salão de beleza</option><option>Estética</option><option>Barbearia</option>
             <option>Clínica</option><option>Loja / e-commerce</option><option>Outro</option>
@@ -183,6 +183,12 @@ fbq('init','SEU_PIXEL_ID'); fbq('track','PageView');
   </section>
 </main>
 
+<!-- CTA na zona do polegar: no celular a nav some com o botao e ele vive aqui.
+     Nunca ha momento sem CTA alcancavel — os dois nunca coexistem. -->
+<div class="acao-fixa" id="acao-fixa">
+  <a class="btn btn--lima" href="https://wa.me/5549999129584?text=Oi%20Pedro!%20Quero%20saber%20mais%20sobre%20tr%C3%A1fego%20pago." target="_blank" rel="noopener">Chamar no WhatsApp</a>
+</div>
+
 <footer class="footer">
   <div class="container">pedropi7.com.br — Pedro Pissetti · Gestão de tráfego</div>
 </footer>
@@ -199,9 +205,16 @@ document.getElementById('form').addEventListener('submit', e => {
   lead('formulario');
   const d = new FormData(e.target);
   const txt = `Oi Pedro! Sou ${d.get('nome')} (${d.get('negocio')}). Quero saber mais sobre tráfego pago. Meu WhatsApp: ${d.get('zap')}`;
-  open('https://wa.me/5549999129584?text=' + encodeURIComponent(txt), '_blank');
+  const url = 'https://wa.me/5549999129584?text=' + encodeURIComponent(txt);
+  // O navegador embutido do Instagram (WKWebView) pode nao implementar o delegate
+  // de nova janela: open() devolve null e NADA acontece — sem erro, sem aviso.
+  // A pessoa preencheu 3 campos e a pagina ficou parada. Este e o unico caminho
+  // de conversao que depende de JS; os outros 3 sao <a href> nativos.
+  const w = open(url, '_blank');
+  if (!w) location.href = url;
 });
 </script>
+<script src="toque.js" defer></script>
 <script src="manchete.js" defer></script>
 <script src="campo-lp.js" defer></script>
 <script src="vida.js" defer></script>

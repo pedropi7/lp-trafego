@@ -104,13 +104,22 @@ void main(){
     const uRes=U('uRes'), uTime=U('uTime'), uMouse=U('uMouse'), uDir=U('uDir'),
           uMotion=U('uMotion'), uBloco=U('uBloco'), uDpr=U('uDpr');
 
-    let dpr=1, W=0, H=0, alvoX=.5, alvoY=.5, px=.5, py=.5;
+    let dpr=1, teto=1.5, W=0, H=0, alvoX=.5, alvoY=.5, px=.5, py=.5;
     let dirX=0, dirY=0, energia=0, raf=0, ultimo=0, visivel=false, lentos=0;
 
     function dimensionar(){
-      dpr = Math.min(devicePixelRatio||1, amplo() ? 1.5 : 2);
-      W = Math.max(1, Math.round(cv.clientWidth*dpr));
-      H = Math.max(1, Math.round(cv.clientHeight*dpr));
+      // O CELULAR renderizava em resolucao MAIOR que o desktop (2 contra 1,5) —
+      // passava despercebido enquanto o quadro era estatico.
+      dpr = Math.min(devicePixelRatio||1, teto);
+      const nW = Math.max(1, Math.round(cv.clientWidth*dpr));
+      const nH = Math.max(1, Math.round(cv.clientHeight*dpr));
+      // No iOS a barra do Safari recolhendo dispara resize NO MEIO DA ROLAGEM.
+      // Sem esta guarda, cada evento realoca o framebuffer dos DOIS canvas e
+      // redesenha o shader inteiro. Navegador de desktop nao dispara resize ao
+      // rolar — por isso era invisivel em toda verificacao que eu fiz.
+      // Compara a MEDIDA DO ELEMENTO, nao innerWidth: rotacao ainda redesenha.
+      if (nW === W && nH === H) return;
+      W = nW; H = nH;
       cv.width = W; cv.height = H;
       gl.viewport(0,0,W,H);
       gl.uniform2f(uRes,W,H); gl.uniform1f(uDpr,dpr);
@@ -122,7 +131,9 @@ void main(){
       gl.uniform4f(uBloco,(rb.left-rc.left)*dpr,(rc.bottom-rb.bottom)*dpr,rb.width*dpr,rb.height*dpr);
     }
     addEventListener('resize', () => { dimensionar(); desenharUm(); }, { passive:true });
-    addEventListener('scroll', medirBloco, { passive:true });
+    // so escuta scroll quem vai de fato redesenhar: no celular o campo desenha
+    // UM quadro, entao medir o bloco a cada evento alimentava um uniform morto
+    if (!calmo && amplo()) addEventListener('scroll', medirBloco, { passive:true });
     if (document.fonts) document.fonts.ready.then(() => { medirBloco(); desenharUm(); });
     addEventListener('pointermove', e => {
       if (e.pointerType === 'touch') return;
@@ -148,7 +159,9 @@ void main(){
       energia = Math.max(energia*Math.pow(.86,dt*60), Math.min(vel,1));
       if (vel>.002){ const l=Math.hypot(vx,vy)||1; dirX+=(vx/l-dirX)*.25; dirY+=(vy/l-dirY)*.25; }
       desenharUm(agora*.001 + cfg.fase);
-      if (dt>.02){ if (++lentos>45 && dpr>1){ dpr=1; lentos=0; dimensionar(); } } else lentos=0;
+      // A degradacao era LETRA MORTA: baixava dpr e dimensionar() o recalculava
+      // na linha seguinte. Agora baixa o TETO, que e o que dimensionar() respeita.
+      if (dt>.02){ if (++lentos>45 && teto>1){ teto=1; lentos=0; dimensionar(); desenharUm(agora*.001+cfg.fase); } } else lentos=0;
     }
     const ligar = () => { if (raf||calmo||!amplo()) return; ultimo=performance.now(); raf=requestAnimationFrame(quadro); };
     const desligar = () => { if (raf){ cancelAnimationFrame(raf); raf=0; } };

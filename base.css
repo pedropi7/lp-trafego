@@ -81,8 +81,18 @@ p{max-width:56ch;text-wrap:pretty}
 .btn{display:inline-flex;align-items:center;justify-content:center;height:52px;
   padding:0 var(--s3);border:1px solid var(--rule-control);
   font-weight:600;font-size:var(--t-body);letter-spacing:.01em;cursor:pointer;
-  transition:transform var(--dur) var(--ease),background var(--dur) var(--ease),
-    border-color var(--dur) var(--ease)}
+  /* 90ms na pressao: 220ms e lento demais para o toque — o dedo ja saiu antes
+     de o botao responder. A borda pode continuar lenta. */
+  transition:transform 90ms var(--ease),background 90ms var(--ease),
+    border-color var(--dur) var(--ease);
+  touch-action:manipulation}
+/* (a) o estado PRIMEIRO — so depois se pode remover o realce nativo */
+.btn:active{transform:scale(.97)}
+.btn--lima:active{background:color-mix(in oklch, var(--lima) 82%, var(--ink))}
+.case__link:active{opacity:.6}
+/* (b) agora sim: o retangulo cinza arredondado do iOS contradiz raio zero e a
+   paleta de tres cores. So sai porque ja existe substituto acima. */
+a,button,label,select,input{-webkit-tap-highlight-color:transparent}
 .btn--lima{background:var(--lima);border-color:var(--lima);color:var(--ink)}
 @media(hover:hover) and (pointer:fine){
   .btn:hover{transform:translateY(-2px)}
@@ -500,4 +510,42 @@ body.dir-c.nav-escura .nav{background:var(--ink);color:var(--paper);border-botto
 .case .case__pico{position:relative;z-index:1}
 @media(max-width:860px){
   .dir-c .quem figure{height:min(52vh,440px)}
+}
+
+/* ===== CTA na zona do polegar ===== */
+.acao-fixa{position:fixed;inset-inline:0;bottom:0;z-index:55;
+  background:var(--paper);border-top:1px solid var(--rule);
+  padding:10px 20px calc(10px + env(safe-area-inset-bottom,0px));
+  transform:translateY(115%);transition:transform .28s var(--ease);
+  display:none}
+.acao-fixa--ok{transform:none}
+.acao-fixa .btn{width:100%;height:52px}
+@media(max-width:860px){
+  .acao-fixa{display:block}
+  /* o CTA da nav sai: os dois nunca coexistem, senao le como spam */
+  .nav .btn{display:none}
+  /* o rodape nao pode ficar sob a barra */
+  .footer{padding-bottom:calc(var(--s4) + 72px)}
+}
+
+/* [6] o select nao parecia clicavel: sublinhado com "Escolher..." e nada mais.
+   Campo obrigatorio sem afordancia e abandono no ultimo metro. */
+.dir-c .form select{
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),
+                   linear-gradient(135deg,var(--ink) 50%,transparent 50%);
+  background-position:calc(100% - 14px) center, calc(100% - 8px) center;
+  background-size:6px 6px, 6px 6px;background-repeat:no-repeat;
+  padding-right:32px}
+
+/* [5] o campo VIVE de novo no celular — mas o que se move e o quadro ja pintado,
+   nao o shader. Deriva na camada composta: o mesmo motor que o telefone usa
+   para rolar a pagina. Zero rAF, zero shader depois do load.
+   Criterio: perceber que algo vive e NAO conseguir apontar o que se move. */
+@media(max-width:1023px) and (prefers-reduced-motion:no-preference){
+  .hero,.case{overflow:clip}          /* sem isto o canvas ampliado sangra */
+  .campo{animation:deriva 38s ease-in-out infinite alternate;will-change:transform}
+  @keyframes deriva{
+    from{transform:scale(1.04) translate3d(-1.5%,-0.8%,0)}
+    to  {transform:scale(1.04) translate3d(1.5%,0.8%,0)}
+  }
 }
